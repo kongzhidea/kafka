@@ -36,21 +36,8 @@ public class KafkaAdapter {
     // group
     public static final String GROUP_WALLET = "group";
 
-
     // topic
     public static String TOPIC_LOGIN = "login"; // 钱包 app登录后通知
-
-
-
-
-    // 设置测试环境和线上环境， 默认线上环境。
-    public static void setTestEnvironment(boolean test) {
-        if (test) {
-            System.setProperty("com.kk.mq.kafka.environment", "1");
-        } else {
-            System.setProperty("com.kk.mq.kafka.environment", "0");
-        }
-    }
 
     private KafkaAdapter() {
         try {
@@ -69,18 +56,8 @@ public class KafkaAdapter {
         Properties prop = new Properties();
         prop.load(in);
 
-        String environment = System.getProperty("com.kk.mq.kafka.environment");
-        if (environment != null && "1".equals(environment)) {
-            zk_hosts = (String) prop.get("zk_hosts_test");
-            kafka_hosts = (String) prop.get("kafka_hosts_test");
-
-            logger.info("kafka.environment is test now");
-        } else {
-            zk_hosts = (String) prop.get("zk_hosts");
-            kafka_hosts = (String) prop.get("kafka_hosts");
-
-            logger.info("kafka.environment is online now");
-        }
+        zk_hosts = (String) prop.get("zk_hosts_test");
+        kafka_hosts = (String) prop.get("kafka_hosts_test");
 
         if (zk_hosts == null || kafka_hosts == null) {
             throw new RuntimeException("Need conf for zookeeper zk_hosts.");
@@ -131,26 +108,27 @@ public class KafkaAdapter {
         return _instance;
     }
 
-    // partition为0， 仅1个分区
+    
     public void sendMessage(String topic, String msg) {
         try {
-            // 如果topic不存在，则会自动创建，默认replication-factor为1，partitions为0
+            //KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, msg); // 不指定partKey，默认1个分区
+
             //  可以设置 key,  同时配置上 partition  分发策略。
-            KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, msg);
+            KeyedMessage<String, String> data = new KeyedMessage<String, String>(topic, msg, msg);
             producer.send(data);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
     }
 
-    // 默认 1个 分区
+    // 默认 1个线程 
     public void test_consume(String group, String topic) {
         ConsumerConnector consumer = Consumer.createJavaConsumerConnector(createConsumerConfig(
                 zk_hosts, group));
 
-        int partitionNum = 1;
+        int threadNum = 1;
         Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
-        topicCountMap.put(topic, Integer.valueOf(partitionNum));
+        topicCountMap.put(topic, Integer.valueOf(threadNum));
 
         Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap = consumer
                 .createMessageStreams(topicCountMap);
@@ -167,14 +145,14 @@ public class KafkaAdapter {
 
     }
 
-    // 默认 1个 分区
+    // 默认 1个 线程 
     public void consume(String group, String topic, KafkaConsume consume) {
         ConsumerConnector consumer = Consumer.createJavaConsumerConnector(createConsumerConfig(
                 zk_hosts, group));
 
-        int partitionNum = 1;
+        int threadNum = 1;
         Map<String, Integer> topicCountMap = new HashMap<String, Integer>();
-        topicCountMap.put(topic, Integer.valueOf(partitionNum));
+        topicCountMap.put(topic, Integer.valueOf(threadNum));
 
         Map<String, List<KafkaStream<byte[], byte[]>>> consumerMap = consumer
                 .createMessageStreams(topicCountMap);
@@ -203,7 +181,6 @@ public class KafkaAdapter {
     }
 
     public static void main(String[] args) throws Exception {
-        System.setProperty("com.kk.mq.kafka.environment", "1");
 //        for (int i = 0; i < 1000; i++) {
 //            KafkaAdapter.getInstance().sendMessage("page_visits13", "world!--" + i);
 //            Thread.sleep(1000);
