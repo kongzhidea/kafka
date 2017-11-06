@@ -56,8 +56,8 @@ public class KafkaAdapter {
         Properties prop = new Properties();
         prop.load(in);
 
-        zk_hosts = (String) prop.get("zk_hosts_test");
-        kafka_hosts = (String) prop.get("kafka_hosts_test");
+        zk_hosts = (String) prop.get("zk_hosts");
+        kafka_hosts = (String) prop.get("kafka_hosts");
 
         if (zk_hosts == null || kafka_hosts == null) {
             throw new RuntimeException("Need conf for zookeeper zk_hosts.");
